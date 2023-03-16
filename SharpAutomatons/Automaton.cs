@@ -17,9 +17,9 @@ public class Automaton
 
     public class AutomatonBuilder
     {
-        private string _automatonName;
+        private readonly string _automatonName;
         private State _initialState;
-        private HashSet<State> _states = new HashSet<State>();
+        private readonly HashSet<State> _states = new();
 
         public AutomatonBuilder(string automatonName)
         {
@@ -32,22 +32,43 @@ public class Automaton
             return this;
         }
 
-        public AutomatonBuilder AddState(string from, string to, char symbol)
+        private State CreateStateIfNeeded(string target)
         {
-            State CreateStateIfNeeded(string target)
+            var state = _states.FirstOrDefault(s => s.Name == target);
+            if (state != null) return state;
+
+            state = new State(target);
+            _states.Add(state);
+
+            return state;
+        }
+        
+        public AutomatonBuilder AddState(string name, bool isFinal = false)
+        {
+            var state = new State(name, isFinal);
+            _states.Add(state);
+
+            return this;
+        }
+        
+        public AutomatonBuilder AddTransition(string from, string to, string symbols)
+        {
+            var fromState = CreateStateIfNeeded(from);
+            var toState = CreateStateIfNeeded(to);
+
+            foreach (var symbol in symbols)
             {
-                var state = _states.FirstOrDefault(s => s.Name == target);
-                if (state != null) return state;
-
-                state = new State(target);
-                _states.Add(state);
-
-                return state;
+                fromState.AddTransition(symbol, toState);
             }
 
-            var fromState = CreateStateIfNeeded(from);
+            return this;
+        }
 
+        public AutomatonBuilder AddTransition(string from, string to, char symbol)
+        {
+            var fromState = CreateStateIfNeeded(from);
             var toState = CreateStateIfNeeded(to);
+
             fromState.AddTransition(symbol, toState);
 
             return this;
@@ -61,6 +82,12 @@ public class Automaton
                 s.RemoveTransitions(state);
             }
 
+            return this;
+        }
+        
+        public AutomatonBuilder MakeFinal(State state)
+        {
+            state.IsFinal = true;
             return this;
         }
 
