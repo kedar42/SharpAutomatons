@@ -13,21 +13,18 @@ public class Automaton
         _name = name;
         _initialState = initialState;
     }
-    
+
     public bool Test(string input)
     {
         var currentState = _initialState;
         foreach (var symbol in input)
         {
             var nextState = currentState.GetNextState(symbol);
-            
+
             if (nextState == null) // get rid of this check by using hell state
             {
                 return false;
             }
-            
-            
-
         }
 
         return currentState.IsFinal;
@@ -39,7 +36,7 @@ public class Automaton
         private readonly string _automatonName;
         private State _initialState;
         private readonly HashSet<State> _states = new();
-        
+
         // todo make a separate class for nondeterministic state
         // todo make method that makes automaton deterministic before building
         // todo make method that removes unreachable states before building
@@ -66,24 +63,11 @@ public class Automaton
 
             return state;
         }
-        
+
         public AutomatonBuilder AddState(string name, bool isFinal = false)
         {
             var state = new State(name, isFinal);
             _states.Add(state);
-
-            return this;
-        }
-        
-        public AutomatonBuilder AddTransition(string from, string to, string symbols)
-        {
-            var fromState = CreateStateIfNeeded(from);
-            var toState = CreateStateIfNeeded(to);
-
-            foreach (var symbol in symbols)
-            {
-                fromState.AddTransition(symbol, toState);
-            }
 
             return this;
         }
@@ -98,17 +82,18 @@ public class Automaton
             return this;
         }
 
-        public AutomatonBuilder RemoveState(State state)
+        public AutomatonBuilder RemoveTransition(string from, char symbol)
         {
-            _states.Remove(state);
-            foreach (var s in _states)
+            var state = _states.FirstOrDefault(x => x.Name == from);
+            if (state == null)
             {
-                s.RemoveTransitions(state);
+                return this;
             }
 
+            state.RemoveTransitions(symbol);
             return this;
         }
-        
+
         public AutomatonBuilder MakeFinal(State state)
         {
             state.IsFinal = true;

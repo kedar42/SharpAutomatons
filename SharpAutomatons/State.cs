@@ -25,20 +25,11 @@ public class State
     {
         _transitions.Remove(symbol);
     }
-
-
-    public bool HasTransition(char symbol)
-    {
-        return _transitions.ContainsKey(symbol);
-    }
+    
 
     public State GetNextState(char symbol)
     {
         return _transitions[symbol];
     }
-
-    public bool LeadsTo(State state)
-    {
-        return _transitions.ContainsValue(state);
-    }
+    
 }
