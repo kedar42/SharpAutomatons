@@ -19,9 +19,9 @@ public class Automaton
         var currentState = _initialState;
         foreach (var symbol in input)
         {
-            var nextState = currentState.GetNextState(symbol);
+            currentState = currentState.GetNextState(symbol);
 
-            if (nextState == null) // get rid of this check by using hell state
+            if (currentState == null) // get rid of this check by using hell state
             {
                 return false;
             }

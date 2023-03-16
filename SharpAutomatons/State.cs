@@ -27,9 +27,10 @@ public class State
     }
     
 
-    public State GetNextState(char symbol)
+    public State? GetNextState(char symbol)
     {
-        return _transitions[symbol];
+        // todo try to use hell to throw error instead of this
+        return !_transitions.ContainsKey(symbol) ? null : _transitions[symbol];
     }
     
 }
