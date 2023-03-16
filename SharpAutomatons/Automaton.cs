@@ -13,6 +13,25 @@ public class Automaton
         _name = name;
         _initialState = initialState;
     }
+    
+    public bool Test(string input)
+    {
+        var currentState = _initialState;
+        foreach (var symbol in input)
+        {
+            var nextState = currentState.GetNextState(symbol);
+            
+            if (nextState == null) // get rid of this check by using hell state
+            {
+                return false;
+            }
+            
+            
+
+        }
+
+        return currentState.IsFinal;
+    }
 
 
     public class AutomatonBuilder
@@ -20,6 +39,11 @@ public class Automaton
         private readonly string _automatonName;
         private State _initialState;
         private readonly HashSet<State> _states = new();
+        
+        // todo make a separate class for nondeterministic state
+        // todo make method that makes automaton deterministic before building
+        // todo make method that removes unreachable states before building
+        // todo look for more optimizations
 
         public AutomatonBuilder(string automatonName)
         {
