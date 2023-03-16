@@ -16,9 +16,14 @@ public class AutomatonBuilder
         _automatonName = automatonName;
     }
 
-    public AutomatonBuilder InitialState(State initialState)
+    public AutomatonBuilder InitialState(string stateName)
     {
-        _initialState = initialState;
+        var state = GetState(stateName);
+        if (state == null)
+        {
+            return this;
+        }
+        _initialState = state;
         return this;
     }
 
@@ -51,9 +56,15 @@ public class AutomatonBuilder
         return this;
     }
 
+    private State? GetState(string name) // todo get rid of null
+    {
+        return _states.FirstOrDefault(x => x.Name == name);
+
+    }
+    
     public AutomatonBuilder RemoveTransition(string from, char symbol)
     {
-        var state = _states.FirstOrDefault(x => x.Name == from);
+        var state = GetState(from);
         if (state == null)
         {
             return this;
@@ -63,14 +74,20 @@ public class AutomatonBuilder
         return this;
     }
 
-    public AutomatonBuilder MakeFinal(State state)
+    public AutomatonBuilder MakeFinal(string stateName)
     {
+        var state = GetState(stateName);
+        if (state == null)
+        {
+            return this;
+        }
         state.IsFinal = true;
         return this;
     }
 
     public Automaton Build()
     {
+        // todo throw errors if the state of automaton is not correct
         return new Automaton(_automatonName, _initialState);
     }
 }

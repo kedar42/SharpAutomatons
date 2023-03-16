@@ -3,7 +3,7 @@
 public class State
 {
     private readonly string _name;
-    private readonly Dictionary<char, State> _transitions = new Dictionary<char, State>();
+    private readonly Dictionary<char, State> _transitions = new();
 
 
     public State(string name, bool isFinal = false)
