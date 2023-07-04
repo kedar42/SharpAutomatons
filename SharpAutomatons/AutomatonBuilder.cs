@@ -3,91 +3,128 @@ namespace SharpAutomatons;
 public class AutomatonBuilder
 {
     private readonly string _automatonName;
-    private State _initialState;
-    private readonly HashSet<State> _states = new();
 
-    // todo make a separate class for nondeterministic state
-    // todo make method that makes automaton deterministic before building
-    // todo make method that removes unreachable states before building
-    // todo look for more optimizations
+    private readonly string _initialState;
+    private readonly HashSet<string> _finalStates = new();
 
-    public AutomatonBuilder(string automatonName)
+    // todo Add support for multiple character states
+    private readonly Dictionary<string, Dictionary<string, HashSet<string>>> _transitions = new();
+
+
+    public AutomatonBuilder(string automatonName, string initialState)
     {
         _automatonName = automatonName;
+        _initialState = initialState;
+        _transitions.Add(initialState, new Dictionary<string, HashSet<string>>());
     }
 
-    public AutomatonBuilder InitialState(string stateName)
+    public AutomatonBuilder AddTransition(string from, string path, string to)
     {
-        var state = GetState(stateName);
-        if (state == null)
+        if (!_transitions.ContainsKey(from))
+            _transitions.Add(from, new Dictionary<string, HashSet<string>>());
+        var transition = _transitions[from];
+        if (!transition.ContainsKey(path))
+            transition.Add(path, new HashSet<string>());
+        transition[path].Add(to);
+        return this;
+    }
+
+    public AutomatonBuilder AddFinalState(string state)
+    {
+        _finalStates.Add(state);
+        return this;
+    }
+
+    //todo remove recursion
+
+    private bool IsNondeterministic() =>
+        _transitions.Values.Any(state => state.Values.Any(transition => transition.Count > 1));
+
+    private void RemoveNondeterminism()
+    {
+        List<(string, string, string)> toAdd = new();
+        while (IsNondeterministic())
         {
-            return this;
+            foreach (var state in _transitions.Values)
+            {
+                foreach (var transition in state.Values)
+                {
+                    if (transition.Count <= 1) continue;
+                    var newTransition = transition.Aggregate("", (current, path) => current + path);
+                    if (transition.Any(to => _finalStates.Contains(to))) _finalStates.Add(newTransition);
+                    foreach (var target in transition)
+                    {
+                        if (!_transitions.ContainsKey(target)) continue;
+                        foreach (var path in _transitions[target])
+                        {
+                            foreach (var newTarget in path.Value)
+                            {
+                                toAdd.Add((newTransition, path.Key, newTarget));
+                            }
+                        }
+                    }
+
+                    transition.Clear();
+                    transition.Add(newTransition);
+                }
+            }
+
+            foreach (var addition in toAdd)
+            {
+                AddTransition(addition.Item1, addition.Item2, addition.Item3);
+            }
         }
-        _initialState = state;
-        return this;
     }
 
-    private State CreateStateIfNeeded(string target)
+    private bool ConstructPathways(IReadOnlyDictionary<string, Dictionary<string, string>> transitions, State current,
+        IDictionary<string, State> allStates)
     {
-        var state = _states.FirstOrDefault(s => s.Name == target);
-        if (state != null) return state;
-
-        state = new State(target);
-        _states.Add(state);
-
-        return state;
-    }
-
-    public AutomatonBuilder AddState(string name, bool isFinal = false)
-    {
-        var state = new State(name, isFinal);
-        _states.Add(state);
-
-        return this;
-    }
-
-    public AutomatonBuilder AddTransition(string from, string to, char symbol)
-    {
-        var fromState = CreateStateIfNeeded(from);
-        var toState = CreateStateIfNeeded(to);
-
-        fromState.AddTransition(symbol, toState);
-
-        return this;
-    }
-
-    private State? GetState(string name) // todo get rid of null
-    {
-        return _states.FirstOrDefault(x => x.Name == name);
-
-    }
-    
-    public AutomatonBuilder RemoveTransition(string from, char symbol)
-    {
-        var state = GetState(from);
-        if (state == null)
+        if (!_transitions.ContainsKey(current.Name)) return _finalStates.Contains(current.Name);
+        var targets = transitions[current.Name];
+        foreach (var (path, to) in targets)
         {
-            return this;
+            if (allStates.TryGetValue(to, out var state))
+            {
+                current.AddTransition(path, state);
+                continue;
+            }
+
+            var newState = new State(to);
+            current.AddTransition(path, newState);
+            allStates.Add(to, newState);
+            if (!ConstructPathways(transitions, newState, allStates))
+            {
+                current.RemoveTransition(path);
+            }
+            
         }
 
-        state.RemoveTransitions(symbol);
-        return this;
+        return current.HasTransitions() || _finalStates.Contains(current.Name);
     }
 
-    public AutomatonBuilder MakeFinal(string stateName)
+    private Dictionary<string, Dictionary<string, string>> DeterministicTransitions()
     {
-        var state = GetState(stateName);
-        if (state == null)
+        var deterministicTransitions = new Dictionary<string, Dictionary<string, string>>();
+        foreach (var transition in _transitions)
         {
-            return this;
+            deterministicTransitions.Add(transition.Key, new Dictionary<string, string>());
+            foreach (var path in transition.Value)
+            {
+                deterministicTransitions[transition.Key].Add(path.Key, path.Value.First());
+            }
         }
-        state.IsFinal = true;
-        return this;
+
+        return deterministicTransitions;
     }
 
     public Automaton Build()
     {
-        // todo throw errors if the state of automaton is not correct
-        return new Automaton(_automatonName, _initialState);
+        RemoveNondeterminism();
+        var deterministicTransitions = DeterministicTransitions();
+        var initialState = new State(_initialState);
+        var allStates = new Dictionary<string, State>();
+        ConstructPathways(deterministicTransitions, initialState, allStates);
+
+        return new Automaton(_automatonName, initialState);
     }
 }

@@ -2,35 +2,36 @@
 
 public class State
 {
-    private readonly string _name;
-    private readonly Dictionary<char, State> _transitions = new();
-
-
+    
+    private Dictionary<string, State> _transitions = new();
+    public string Name { get; init; }
+    public bool IsFinal { get; init; }
+    
     public State(string name, bool isFinal = false)
     {
-        _name = name;
+        Name = name;
         IsFinal = isFinal;
     }
-
-    public string Name => _name;
-
-    public bool IsFinal { get; set; }
-
-    public void AddTransition(char symbol, State to)
+    
+    public State AddTransition(string path, State to)
     {
-        _transitions[symbol] = to;
-    }
-
-    public void RemoveTransitions(char symbol)
-    {
-        _transitions.Remove(symbol);
+        _transitions.Add(path, to);
+        return this;
     }
     
-
-    public State? GetNextState(char symbol)
+    public State RemoveTransition(string path)
     {
-        // todo try to use hell to throw error instead of this
-        return !_transitions.ContainsKey(symbol) ? null : _transitions[symbol];
+        _transitions.Remove(path);
+        return this;
     }
     
+    public bool HasTransitions()
+    {
+        return _transitions.Count > 0;
+    }
+    
+    public string? GetNext(string path)
+    {
+        return _transitions.TryGetValue(path, out var transition) ? transition.Name : null;
+    }
 }
