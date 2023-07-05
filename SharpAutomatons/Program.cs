@@ -6,7 +6,6 @@ static class Program
     {
         Automaton test;
         
-        
         var builder1 = new AutomatonBuilder("Test", "S");
         builder1.AddTransition("S", "a", "S");
         builder1.AddFinalState("S");
